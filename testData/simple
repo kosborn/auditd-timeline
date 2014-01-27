@@ -1,0 +1,6 @@
+type=SYSCALL msg=audit(1390793944.079:6998): arch=c000003e syscall=59 success=yes exit=0 a0=203ff48 a1=203e0c8 a2=1fb9008 a3=7fff2c8f4c50 items=2 ppid=8434 pid=8435 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts0 ses=344 comm="python" exe="/usr/bin/python2.7" key=(null)
+type=EXECVE msg=audit(1390793944.079:6998): argc=4 a0="/usr/bin/python" a1="/usr/lib/command-not-found" a2="--" a3="tain"
+type=CWD msg=audit(1390793944.079:6998):  cwd="/var/log/audit"
+type=PATH msg=audit(1390793944.079:6998): item=0 name="/usr/bin/python" inode=397767 dev=fc:00 mode=0100755 ouid=0 ogid=0 rdev=00:00
+type=PATH msg=audit(1390793944.079:6998): item=1 name=(null) inode=533050 dev=fc:00 mode=0100755 ouid=0 ogid=0 rdev=00:00
+
