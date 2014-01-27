@@ -1,0 +1,51 @@
+auditd:
+  SYSCALL:
+    description: system calls
+    parameters:
+      aid: int
+      timestamp: int
+      syscall: int
+      success: int
+      exit: int
+      items: int
+      ppid: int
+      pid: int
+      auid: int
+      uid: int
+      gid: int
+      euid: int
+      suid: int
+      fsuid: int
+      egid: int
+      sgid: int
+      fsgid: int
+      tty: text
+      ses: int
+      comm: text
+      exe: text
+  EXECVE:
+    description: system calls
+    parameters:
+      aid: int
+      timestamp: int
+      argc: int
+      argdata: text
+  CWD:
+    description: system calls
+    parameters:
+      aid: int
+      timestamp: int
+      cwd: text
+  PATH:
+    description: system calls
+    parameters:
+      aid: int
+      timestamp: int
+      item: int
+      name: text
+      inode: int
+      dev: text
+      mode: text
+      ouid: int
+      ogid: int
+    
