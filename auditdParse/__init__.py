@@ -12,7 +12,7 @@ class auditdParse:
 		else:
 			self.con = sqlite3.connect('audit.db')
 			self.cur = self.con.cursor()
-			sqlSchema = open('audit.sql','r').read()
+			sqlSchema = open(os.path.dirname(__file__)+'/audit.sql','r').read()
 			self.cur.executescript(sqlSchema)
 			self.con.commit()
 
