@@ -1,32 +1,36 @@
-import sqlite3, re, sys, os
+import sqlite3, re, sys, os, yaml
 
 
 
 class auditdParse:
 	def __init__(self,auditFile):
+		typeConf = open('types.yaml','r').read()
+		typeList = yaml.load(typeConf)
+
+		# Here is where we defined expected database & dictionary parameters
+		# We define these and merge the actual messages just
+		# in case they do not contain one of the parameters
+		# It must be (expected[n] + message) or it will overwrite
+		# Defined in yaml config file
+
+		self.expected = {}
+		self.createDB = {}
+		for i in typeList['auditd'].keys():
+			self.expected[i] = {k: None for k in typeList['auditd'][i]['parameters']}
+			self.createDB[i] = 'CREATE TABLE '+str(i)+'('+', '.join(list(' '.join([key,value]) for key,value in typeList['auditd'][i]['parameters'].items()))+');'
 
 		self.log = open(auditFile,'r').readlines()
 		if os.path.isfile('audit.db'):
-			self.con = sqlite3.connect('audit.db')
+			self.con = sqlite2.connect('audit.db')
 			self.cur = self.con.cursor()
 		else:
 			self.con = sqlite3.connect('audit.db')
 			self.cur = self.con.cursor()
-			sqlSchema = open(os.path.dirname(__file__)+'/audit.sql','r').read()
-			self.cur.executescript(sqlSchema)
+			#sqlSchema = open(os.path.dirname(__file__)+'/audit.sql','r').read()
+			self.cur.executescript(' '.join(self.createDB.values()))
 			self.con.commit()
 
-		# Here is what the database expects. 
-		# We define these and merge the actual messages just
-		# in case they do not contain one of the parameters
-		# It must be (expected[n] + message) or it will overwrite
 
-		self.expected = {}
-		self.expected['SYSCALL'] = {'aid':None,'timestamp':None,'syscall':None,'success':None,'exit':None,'items':None,'ppid':None,'pid':None,'auid':None,'uid':None,'gid':None,'euid':None,'suid':None,'fsuid':None,'egid':None,'sgid':None,'fsgid':None,'tty':None,'ses':None,'comm':None,'exe':None,'exe':None}
-		self.expected['EXECVE'] = {'aid':None,'timestamp':None,'argc':None,'argdata':None}
-		self.expected['CWD'] = {'aid':None,'timestamp':None,'cwd':None}
-		self.expected['PATH'] = {'aid':None,'timestamp':None,'item':None,'name':None,'inode':None,'dev':None,'mode':None,'ouid':None,'ogid':None}
-		
 		for i in self.log:
 			message = self.parseLine(i)
 			if message:
