@@ -49,3 +49,14 @@ auditd:
       ouid: int
       ogid: int
     
+  users:
+    description: linux users from /etc/passwd to correlate to uid
+    parameters:
+      uid: int
+      name: text
+
+  groups:
+    description: linux groups from /etc/group to correlate to uid
+    parameters:
+      gid: int
+      name: text

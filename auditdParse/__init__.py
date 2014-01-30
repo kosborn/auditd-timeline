@@ -35,6 +35,13 @@ class auditdParse:
 			self.cur.executescript(' '.join(self.createDB.values()))
 			self.con.commit()
 
+		# import user and group IDs
+		users =  tuple([items.groupdict() for items in re.finditer(r'^(?P<name>\w+):\w*:(?P<uid>\w+):',open('/etc/passwd','r').read(),re.M)])
+		self.cur.executemany(self.insertDB['users'],users)
+		groups = tuple([items.groupdict() for items in re.finditer(r'^(?P<name>\w+):\w*:(?P<gid>\w+):',open('/etc/group','r').read(),re.M)])
+		self.cur.executemany(self.insertDB['groups'],groups)
+		
+
 
 	def parse(self,auditFile):
 		for line in open(auditFile,'r').readlines():
