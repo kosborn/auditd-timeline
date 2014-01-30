@@ -3,7 +3,7 @@ import sqlite3, re, sys, os, yaml
 
 
 class auditdParse:
-	def __init__(self,auditFile):
+	def __init__(self):
 		# For debugging or general verbosity
 		# 0 = almost no output
 		# 1 = simple error (such as undefined message type)
@@ -15,7 +15,7 @@ class auditdParse:
 		# in case they do not contain one of the parameters
 		# It must be (expected[n] + message) or it will overwrite
 		# Defined in yaml config file
-		typeConf = open('types.yaml','r').read()
+		typeConf = open(os.path.dirname(__file__)+'/types.yaml','r').read()
 		typeList = yaml.load(typeConf)
 		self.expected, self.createDB, self.insertDB = {},{},{}
 
@@ -36,6 +36,7 @@ class auditdParse:
 			self.con.commit()
 
 
+	def parse(self,auditFile):
 		for line in open(auditFile,'r').readlines():
 			message = self.parseLine(line)
 			if message:
@@ -100,4 +101,3 @@ class auditdParse:
 			print note+": "+str(item)
 
 
-doit = auditdParse('/tmp/audit.log')
