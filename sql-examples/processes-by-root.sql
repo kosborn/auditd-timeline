@@ -1,0 +1,1 @@
+select pid,SYSCALL.uid,datetime(SYSCALL.timestamp,'unixepoch','localtime') as time,name,comm,argdata from SYSCALL JOIN EXECVE on SYSCALL.aid = EXECVE.aid JOIN users ON SYSCALL.uid = users.uid where users.name = 'root' ORDER BY SYSCALL.timestamp;

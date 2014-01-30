@@ -1,4 +1,4 @@
-import sqlite3, re, sys, os, yaml
+import sqlite3, re, sys, os, yaml, binascii
 
 
 
@@ -87,9 +87,18 @@ class auditdParse:
 					# Sometimes an argument is missing or on the next line
 					# We need to handle this if it's on the next line somehow
 					try:
+						if not re.match(r'^"[^"]*"$',message['a'+str(counter)]):
+							message['a'+str(counter)] = '"'+binascii.unhexlify(message['a'+str(counter)].strip())+'"'
 						tmp[counter] = message['a'+str(counter)]
-					except:
+					except Exception as error:
+						# Sometimes we receive multiple EXECVE
+						# with varying argc, which throws an error
+						# http://www.redhat.com/archives/linux-audit/2009-March/msg00026.html
+						# it is safe to ignore
+						self.loud("Error!",message,2)
+						self.loud("Some error occured",error.message,2)
 						tmp[counter]=None
+
 					counter = counter+1
 				message['argdata'] = str(tmp)
 			except Exception as error:
