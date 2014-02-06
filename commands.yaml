@@ -1,0 +1,18 @@
+commands:
+  username:
+    KOsborn: # Notify when this user runs anything but these commands
+      type: whitelist
+      exe: 
+        - /bin/ls
+        - /bin/hostname
+        - /opt/bin/specific/exe
+    kosadm: # Notify when this user is running these commands
+      type: blacklist
+      exe:
+        - /bin/sudo
+        - /bin/su
+  groupname:
+    Guests:
+      type: whitelist
+      exe:
+        - /bin/ls

@@ -35,12 +35,47 @@ class auditdParse:
 			self.cur.executescript(' '.join(self.createDB.values()))
 			self.con.commit()
 
-		# import user and group IDs
-		users =  tuple([items.groupdict() for items in re.finditer(r'^(?P<name>\w+):\w*:(?P<uid>\w+):',open('/etc/passwd','r').read(),re.M)])
-		self.cur.executemany(self.insertDB['users'],users)
-		groups = tuple([items.groupdict() for items in re.finditer(r'^(?P<name>\w+):\w*:(?P<gid>\w+):',open('/etc/group','r').read(),re.M)])
-		self.cur.executemany(self.insertDB['groups'],groups)
-		
+		# import user/group IDs
+		try:
+			users = [dict(items.groupdict().items()+{'list':'0'}.items()) for items in re.finditer(r'^(?P<name>\w+):[^:]*:(?P<uid>\w+):',open('/etc/passwd','r').read(),re.M)]
+			print users
+			self.cur.executemany(self.insertDB['users'],users)
+		except Exception as message:
+			print users
+			print self.insertDB['users']
+			self.loud("Error!",message,0)
+		try:
+			groups = [dict(items.groupdict().items()+{'list':'0'}.items()) for items in re.finditer(r'^(?P<name>\w+):[^:]*:(?P<gid>\w+):',open('/etc/group','r').read(),re.M)]
+			print groups
+			self.cur.executemany(self.insertDB['groups'],groups)
+		except Exception as message:
+			print groups
+			print self.insertDB['groups']
+			self.loud("Error!",message,0)
+
+		# Create command list 
+		commandConf = open('commands.yaml','r').read()
+		commandList = yaml.load(commandConf)
+		for catname in commandList['commands']:
+			for subname in commandList['commands'][catname]:
+				commandInsert = commandList['commands'][catname][subname]
+				commandInsert.update({catname:subname})
+				commandInsert = dict({'username':None,'groupname':None}.items()+commandInsert.items())
+				if catname == 'username':
+					cat = 'users'
+				elif catname == 'groupname':
+					cat = 'groups'
+				updateUser = 'UPDATE '+cat+' SET list = :type WHERE name = :subname'
+				obj = []
+				for exe in commandInsert['exe']:
+					t = commandInsert
+					t['exe'] = exe
+					obj.append(t)
+				self.cur.executemany(self.insertDB['commands'],obj)
+				self.cur.execute(updateUser,{'type':commandInsert['type'],'subname':subname})
+				print updateUser
+				print {'type':commandInsert['type'],'subname':subname}
+
 
 
 	def parse(self,auditFile):
@@ -115,5 +150,12 @@ class auditdParse:
 	def loud(self,note,item,level=1):
 		if level <= self.verboseLevel:
 			print note+": "+str(item)
+
+
+	def commandList(self):
+		if os.path.isfile(os.path.dirname(__file__)+'/commands.yaml'):
+			commandList = open(os.path.dirname(__file__)+'/commands.yaml','r').read()
+			commandList = yaml.load(typeConf)
+
 
 

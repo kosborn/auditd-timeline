@@ -54,9 +54,18 @@ auditd:
     parameters:
       uid: int
       name: text
+      list: text
 
   groups:
     description: linux groups from /etc/group to correlate to uid
     parameters:
       gid: int
       name: text
+      list: text
+
+  commands:
+    description: A bridge table to define which commands users/groups are whitelisted/blacklisted to use
+    parameters:
+      exe: text
+      username: text
+      groupname: text
