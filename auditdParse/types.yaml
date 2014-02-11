@@ -30,6 +30,7 @@ auditd:
       timestamp: int
       argc: int
       argdata: text
+      string: text
   CWD:
     description: system calls
     parameters:

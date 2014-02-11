@@ -38,19 +38,17 @@ class auditdParse:
 		# import user/group IDs
 		try:
 			users = [dict(items.groupdict().items()+{'list':'0'}.items()) for items in re.finditer(r'^(?P<name>\w+):[^:]*:(?P<uid>\w+):',open('/etc/passwd','r').read(),re.M)]
-			print users
 			self.cur.executemany(self.insertDB['users'],users)
 		except Exception as message:
-			print users
-			print self.insertDB['users']
+			self.loud(users,0)
+			self.loud(self.insertDB['users'],0)
 			self.loud("Error!",message,0)
 		try:
 			groups = [dict(items.groupdict().items()+{'list':'0'}.items()) for items in re.finditer(r'^(?P<name>\w+):[^:]*:(?P<gid>\w+):',open('/etc/group','r').read(),re.M)]
-			print groups
 			self.cur.executemany(self.insertDB['groups'],groups)
 		except Exception as message:
-			print groups
-			print self.insertDB['groups']
+			self.loud(groups)
+			self.loud(self.insertDB['groups'])
 			self.loud("Error!",message,0)
 
 		# Create command list 
@@ -73,8 +71,6 @@ class auditdParse:
 					obj.append(t)
 				self.cur.executemany(self.insertDB['commands'],obj)
 				self.cur.execute(updateUser,{'type':commandInsert['type'],'subname':subname})
-				print updateUser
-				print {'type':commandInsert['type'],'subname':subname}
 
 
 
@@ -92,14 +88,25 @@ class auditdParse:
 	 	if line.strip():
 			try:
 				message={x: y for(x, y) in re.findall('([a-z0-9]+)=([^ ]+)+',line)}
+				# Normalize strings/quotes
+				for attrs in message:
+					if re.match(r'a[0-9]+',attrs) and message['type'] == 'EXECVE' and not re.match(r'^"[^"]*"$',message[attrs]):
+						message[attrs] = binascii.unhexlify(message[attrs].strip())
+					elif re.match(r'^"[^"]*"$',message[attrs]):
+						message[attrs] =  re.match(r'^"(.+)"\n?$',message[attrs]).groups()[0]
+				
 				if message['type'] in self.expected.keys():
 					message['aid'] = re.match('audit\([^:]+:([^)]+)\)',message['msg']).groups()[0]
 					message['timestamp'] = re.match('audit\(([^.]+).+\)',message['msg']).groups()[0]
 				else:
-					return False
+					# Since this is likely to happen a lot, don't print this message by default
+					self.loud("Unknown type",atype,1)
+					self.loud("Message",message,2)
 			except Exception as error:
 				self.loud("Error!",message,0)
 				self.loud("Some error occured",error.message,0)
+				if self.verboseLevel > 0:
+					raise
 
 			return message
 		else:
@@ -122,8 +129,6 @@ class auditdParse:
 					# Sometimes an argument is missing or on the next line
 					# We need to handle this if it's on the next line somehow
 					try:
-						if not re.match(r'^"[^"]*"$',message['a'+str(counter)]):
-							message['a'+str(counter)] = '"'+binascii.unhexlify(message['a'+str(counter)].strip())+'"'
 						tmp[counter] = message['a'+str(counter)]
 					except Exception as error:
 						# Sometimes we receive multiple EXECVE
@@ -132,17 +137,18 @@ class auditdParse:
 						# it is safe to ignore
 						self.loud("Error!",message,2)
 						self.loud("Some error occured",error.message,2)
+						if self.verboseLevel > 0:
+							raise
 						tmp[counter]=None
 
 					counter = counter+1
+				message['string'] = ' '.join(tmp.values())
 				message['argdata'] = str(tmp)
 			except Exception as error:
 				self.loud("Error!",message,0)
 				self.loud("Some error occured",error.message,0)
-		else:
-			# Since this is likely to happen a lot, don't print this message by default
-			self.loud("Unknown type",atype)
-			self.loud("Message",message,2)
+				if self.verboseLevel > 0:
+					raise
 
 		self.cur.execute(self.insertDB[atype],message) 
 
