@@ -113,8 +113,11 @@ class auditdParse:
 			return False
 
 	def insertType(self,message):
-		atype = message['type']
-		message = dict(self.expected[atype].items()+message.items())
+		try:
+			atype = message['type']
+			message = dict(self.expected[atype].items()+message.items())
+		except:
+			return False
 
 		# Since EXECVE contains items we want (parameters) in a0, a1, a2, etc
 		# format, we must group them into a single string to avoid creating

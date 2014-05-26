@@ -49,6 +49,16 @@ auditd:
       mode: text
       ouid: int
       ogid: int
+
+  DAEMON_START:
+    description: daemons starting apparently
+    parameters:
+       auid: int
+    
+  CONFIG_CHANGE:
+    description: Configuration change apparently
+    parameters:
+       auid: int
     
   users:
     description: linux users from /etc/passwd to correlate to uid
