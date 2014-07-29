@@ -28,6 +28,7 @@ auditd:
     parameters:
       aid: int
       timestamp: int
+      bin: text
       argc: int
       argdata: text
       string: text
