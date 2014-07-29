@@ -1,16 +1,16 @@
 commands:
   username:
-    KOsborn: # Notify when this user runs anything but these commands
-      type: whitelist
+    kos: # Notify when this user runs these commands
+      type: blacklist
       exe: 
+        - /usr/bin/sudo
+        - /bin/su
+    www-data: # Notify when user runs anything besides commands
+      type: whitelist
+      exe:
         - /bin/ls
         - /bin/hostname
         - /opt/bin/specific/exe
-    kosadm: # Notify when this user is running these commands
-      type: blacklist
-      exe:
-        - /bin/sudo
-        - /bin/su
   groupname:
     Guests:
       type: whitelist

@@ -9,7 +9,10 @@ class auditdParse:
         self.importUsers = True
 
         # include ./commands.yaml for whitelist/blacklist commands
-        self.addCommands = False
+        self.addCommands = True
+
+        # Utilize command whitelist/blacklist to trigger events
+        self.eventTriggers = True
 
         # For debugging or general verbosity
         # ERROR = almost no output
@@ -19,6 +22,7 @@ class auditdParse:
         logging.basicConfig(format='%(levelname)s %(message)s')
         self.log.setLevel(logging.WARNING)
 
+        self.events = {}
 
         self.prepData()
 
@@ -52,14 +56,14 @@ class auditdParse:
         # import user/group IDs
         if self.importUsers:
             try:
-                users = [dict(items.groupdict().items()+{'list':'0'}.items()) for items in re.finditer(r'^(?P<name>\w+):[^:]*:(?P<uid>\w+):',open('/etc/passwd','r').read(),re.M)]
+                users = [items.groupdict() for items in re.finditer(r'^(?P<name>[\w-]+):[^:]*:(?P<uid>[\d]+):',open('/etc/passwd','r').read(),re.M)]
                 self.cur.executemany(self.insertDB['users'],users)
             except Exception as message:
                 self.log.debug(users)
                 self.log.debug(self.insertDB['users'])
                 self.log.debug("Error! %s",message)
             try:
-                groups = [dict(items.groupdict().items()+{'list':'0'}.items()) for items in re.finditer(r'^(?P<name>\w+):[^:]*:(?P<gid>\w+):',open('/etc/group','r').read(),re.M)]
+                groups = [items.groupdict() for items in re.finditer(r'^(?P<name>[\w-]+):[^:]*:(?P<gid>[\d]+):',open('/etc/group','r').read(),re.M)]
                 self.cur.executemany(self.insertDB['groups'],groups)
             except Exception as message:
                 self.log.debug(groups)
@@ -80,20 +84,21 @@ class auditdParse:
                             cat = 'users'
                         elif catname == 'groupname':
                             cat = 'groups'
-                        updateUser = 'UPDATE '+cat+' SET list = :type WHERE name = :subname'
-                        obj = []
+                        t = commandInsert
                         for exe in commandInsert['exe']:
-                            t = commandInsert
                             t['exe'] = exe
-                            obj.append(t)
-                        self.cur.executemany(self.insertDB['commands'],obj)
-                        self.cur.execute(updateUser,{'type':commandInsert['type'],'subname':subname})
+                            self.cur.execute(self.insertDB['commands'],t)
             except Exception as error:
                 self.log.critical('Failed to create command list. %s',error)
 
     def parse(self,auditFile):
         for line in open(auditFile,'r').readlines():
             message = self.parseLine(line)
+            if self.eventTriggers:
+                try:
+                    self.eventManager(message)
+                except Exception as e:
+                    self.log.critical('Events failed: %s', e)
             if message:
                 self.insertType(message)
 
@@ -168,7 +173,28 @@ class auditdParse:
         except Exception as error:
             self.log.critical("Could not save to database. %s",error)
 
+    def eventManager(self,line):
+        if not self.events:
+            events = self.cur.execute('select c.exe,c.username,u.uid,c.type from commands c  join users u on u.name=c.username;').fetchall()
+            _ = {}
+            for user in events:
+                if user[2] in  _:
+                    _[user[2]]['commands'].add(user[0])
+                else:
+                    _[user[2]] = {'type':user[3],'commands':set([user[0]])}
+            self.events['users'] =  _
 
+        if line['type'] == 'SYSCALL' and int(line['uid']) in self.events['users']:
+            if self.events['users'][int(line['uid'])]['type'] == 'blacklist':
+                if line['exe'] in self.events['users'][int(line['uid'])]['commands']:
+                    return self.violation(line,self.events['users'][int(line['uid'])])
+            if self.events['users'][int(line['uid'])]['type'] == 'whitelist':
+                if line['exe'] not in self.events['users'][int(line['uid'])]['commands']:
+                    return self.violation(line,self.events['users'][int(line['uid'])])
+
+    def violation(self,line,events):
+        self.log.critical("SECURITY VIOLATION FOR USER: %s" % line['uid'])
+        return False
 
 """
     def commandList(self):
